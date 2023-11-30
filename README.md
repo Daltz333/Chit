@@ -6,7 +6,7 @@ COSC 423 Project #2
 
 - Chit Client:
   - Provides a user interface that implements secure realtime UDP communication with other Psst! users.
-  - Performs Psst! message encryption and decryption using RSA PKE.
+  - Performs basic message encryption and decryption using RSA PKE.
 - Address Server: 
   - TCP server for realtime communication
 - Public Key Server:
@@ -16,15 +16,13 @@ COSC 423 Project #2
 
 Run the following in separate bash instances:
 
-- Run `./bin/pk_server 127.0.0.1 PORT`
-- Run `./bin/chit_client 127.0.0.1 PORT`
-- Run `./bin/address_server 127.0.0.1 PORT`
+- Run `./bin/pk_server PORT`
+- Run `./bin/chit_client PORT`
+- Run `./bin/address_server PORT`
 
 ### Valid client commands
 
-- `view`
-- `send`
-- `fasdf`
+TODO
 
 ## Build Instructions
 
@@ -37,10 +35,9 @@ make all
 
 ### Targets
 
-- `make auth` - Builds the 2FA authentication server
-- `make auth_mgmt` - Builds the client for registering users on the 2FA server
-- `make mailbox` - Builds the mailbox server for storing messages
-- `make psst` - Builds the client
+- `make chit_client` - Builds the terminal client
+- `make address_server` - Builds the address server for UDP lookup
+- `make pk_server` - Builds the public key server for encrypted message transmission
 - `make all` - Builds all of the above
 - `make clean` - Cleans the `bin` and `obj` directories
 
@@ -48,12 +45,20 @@ make all
 
 The project is composed of four directories under `src`. 
 
-- `auth` - code specific to the auth server
-- `auth_mgmt` code specific to auth management client
-- `mailbox` - code specific to the mailbox server
-- `psst` - code specific to the client program
+- `address_server` - code specific to the address server
+- `chit_client` code specific to the chit client
+- `pk_server` - code specific to the public key server
 - `shared` - shared code that should be duplicated among targets
 
 ## Binaries
 
-Binaries are located in `bin` with their respective target names.
+Binaries are located in `bin` with their respective target names. Binaries are also available via GitHub actions artifacts.
+
+## Notice for Consumers
+
+This application isn't really intended for public consumption. There are many encrypted terminal chat clients out there to use. This project has many issues that have been "hand-waved" away as this is just a school project. Issues such as:
+
+- Limited to 100 clients, and subsequent clients are denied
+- RSA encryption is very slow
+- Not very user intuitive (ideally we'd generate keys for the user!)
+- Breaks on long messages, special characters, etc.
