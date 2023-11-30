@@ -10,7 +10,7 @@
 #include "../shared/DieWithError.h"
 #include "../shared/Messages.h"
 #include "../shared/MessageUtil.h"
-#include "Psst.h"
+#include "chit_client.h"
 
 #define ECHOMAX 255     /* Longest string to echo */
 

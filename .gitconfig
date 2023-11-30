@@ -6,3 +6,5 @@
 [user]
 	name = Daltz333
 	email = daltzsmith@gmail.com
+[commit]
+    gpgsign = false

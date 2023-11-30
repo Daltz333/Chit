@@ -8,7 +8,7 @@
 #include "../shared/Messages.h"
 #include "../shared/ServerConstants.h"
 #include "../shared/MessageUtil.h"
-#include "Mailbox.h"
+#include "pk_server.h"
 
 #define PUBLIC_KEY_MAX 255 /* We can handle up to 255 clients */
 
