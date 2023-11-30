@@ -3,6 +3,7 @@ typedef struct {
     enum { MESSAGE } message_type; /* Message type */
     unsigned int timestamp; /* Timestamp of the sent message */
     unsigned int user_id; /* Sender ID of the message */
+    unsigned long *payload; /* Encrypted message contents */
 } Chit_Message;
 
 /** Represents a message to or from the Public Key Server */
