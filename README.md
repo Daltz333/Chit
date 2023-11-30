@@ -4,19 +4,19 @@ COSC 423 Project #2
 
 ## Project Goals
 
-- User Psst! Client:
+- Chit Client:
   - Provides a user interface that implements secure realtime UDP communication with other Psst! users.
   - Performs Psst! message encryption and decryption using RSA PKE.
-- SYH Server: 
-  - Communicates with the Mailbox Server and Psst! clients to implement two-factor authentication.
+- Address Server: 
+  - TCP server for realtime communication
 - Public Key Server:
-  - Manages users public-keys.
+  - TCP server for storing users public keys.
 
 ## Run Instructions
 
 Run the following in separate bash instances:
 
-- Run `./bin/pks_server 127.0.0.1 PORT`
+- Run `./bin/pk_server 127.0.0.1 PORT`
 - Run `./bin/chit_client 127.0.0.1 PORT`
 - Run `./bin/address_server 127.0.0.1 PORT`
 

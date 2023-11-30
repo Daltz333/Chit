@@ -1,53 +1,31 @@
-/**
- * Represents a message between Mailbox/Auth MGMT and Auth (SYH) server
- * 
-*/
+/** Represents a message from a Chit client to another Chit client */
 typedef struct {
-    enum {register_syh, ack_reg, syh, ack_push_syh, request_auth, neg_ack_push_syh} message_type;
+    enum { MESSAGE } message_type; /* Message type */
+    unsigned int timestamp; /* Timestamp of the sent message */
+    unsigned int user_id; /* Sender ID of the message */
+} Chit_Message;
 
-    unsigned int user_id;
-    unsigned long timestamp;
-    unsigned long digital_sig;
-} AuthMessage;
-
-/**
- * Represents a message from Auth Server to MGMT
-*/
+/** Represents a message to or from the Public Key Server */
 typedef struct {
-    enum {confirm_syh, push_syh} message_type;
+    enum {FETCH_PK, FETCH_PK_ACK, REGISTER_PK, REGISTER_PK_ACK} message_type; /* Message type */
+    unsigned int timestamp; /* Timestamp of the sent message */
+    unsigned int user_id; /* Id of the user who sent the message, if applicable */
 
-    unsigned int user_id;
-} PushNotif;
+    /* If fetch_pk, this is requested user id for pk request */
+    unsigned int req_user_id;
 
-/**
- * Represents a message from Mailbox to Client
-*/
-typedef struct {
-    enum {ack_login, ack_message, ack_retrieve} message_type;
-
-    unsigned int user_id;
-    unsigned int count;
-} MailboxMessage;
-
-/**
- * Represents a message from Mailbox/PKS to Client
-*/
-typedef struct {
-    enum {ack_register_key, response_public_key} message_type;
-
-    unsigned int user_id;
+     /* if fetch_pk, this is 0 */
+     /* if fetch_pk_ack, this is PK of request */
+     /* if register_pk, this is PK of sender */
+     /* if register_pk_ack, this is PK of sender or 0 if not found */
     unsigned int public_key;
-    unsigned int err; /* Error response */
-} ConfirmLoginMessage;
+} Pk_Message;
 
+/** Represents a message to or from the Address Server */
 typedef struct {
-    enum {register_key, request_key, response_auth, login, send_msg, retrieve_msg} message_type;
-
-    unsigned int user_id; /* ID of the sender */
-    unsigned int public_key; 
-    unsigned int recipient_id; /* ID of the recipient */
-    unsigned int timestamp; /* Plaintext timestamp */
-    unsigned long digital_dig; /* Timestamp encrypted with the sender's private key */
-    unsigned long psst_msg[32]; /* Encrypted message, encrypted with the receiver's public key */
-    unsigned int err; /* Error response */
-} PsstMailboxMessage;
+    enum {REGISTER_ADDR, REGISTER_ADDR_ACK, FETCH_ADDR, FETCH_ADDR_ACK} message_type; /* Message type */
+    unsigned int timestamp; /* Timestamp of the sent message */
+    unsigned int user_id; /* Id of the user who sent the message, if applicable */
+    unsigned int user_port; /* Port address of the chit client in the case of REGISTER_ACK */
+    char* user_addr; /* IP address of the chit client in the case of FETCH_ADDR */ 
+} Addr_Serv_Message;

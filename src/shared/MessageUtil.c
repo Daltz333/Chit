@@ -60,12 +60,3 @@ long long int decrypt(int msg, int pubKey)
 {
     return modfun(msg, pubKey, n);
 }
-
-/**
- * Generates a private key given e
- * Assumes e is denominator for n
-*/
-int getPrivKey(int e, int p, int q)
-{
-    return modInverse(e, ((p-1)*(q-1)));
-}

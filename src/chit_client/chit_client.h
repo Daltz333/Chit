@@ -1,2 +1,0 @@
-int registerAuth(unsigned int user_id, unsigned int public_key, int sock, struct sockaddr_in echoServAddr);
-int login_user(unsigned int user_id, unsigned int private_key, int sock, struct sockaddr_in echoServAddr);
