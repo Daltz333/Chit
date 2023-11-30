@@ -1,0 +1,31 @@
+name: Build & Publish
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: make
+
+      - uses: actions/upload-artifact@v3
+        name: Upload Address Server Artifact
+        with:
+          name: address_server
+          path: bin/address_server
+
+      - uses: actions/upload-artifact@v3
+        name: Upload Chit Client Artifact
+        with:
+          name: chit_client
+          path: bin/chit_client
+
+      - uses: actions/upload-artifact@v3
+        name: Upload PK Server Artifact
+        with:
+          name: pk_server
+          path: bin/pk_server
