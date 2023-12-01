@@ -116,7 +116,7 @@ void handleClient(Addr_Serv_Message *incMessage, AddressEntry *registered_client
             break;
             
         default:
-            printf("Received an unhandled message type %i. Ignoring.", (int)incMessage->message_type);
+            printf("Received an unhandled message type %i. Ignoring.\n", (int)incMessage->message_type);
             break;
     }
 }

@@ -101,7 +101,7 @@ void handleClient(Pk_Message *incMessage, PkEntry *registered_clients, struct so
             break;
             
         default:
-            printf("Received an unhandled message type %i. Ignoring.", (int)incMessage->message_type);
+            printf("Received an unhandled message type %i. Ignoring.\n", (int)incMessage->message_type);
             break;
     }
 }

@@ -90,7 +90,20 @@ void registerPublicKey(int pubKey, int userId, struct sockaddr_in *targetSock, i
 */
 void registerAddress(int listeningPort, int userId, struct sockaddr_in *targetSock, int sock)
 {
+   Addr_Serv_Message *message = malloc(sizeof(Addr_Serv_Message));
+   memset(message, 0, sizeof(Addr_Serv_Message));
+   
+   message->message_type = REGISTER_ADDR;
+   message->user_port = listeningPort;
+   message->user_id = userId;
+   message->timestamp = (long int)time(NULL);
+   
+   /* Send MSG */
+   if ((sendto(sock, message, sizeof(Addr_Serv_Message), 0, (struct sockaddr *)targetSock, sizeof(*targetSock))) < 0) {
+         printf("Failed to send ACK to client.\n");
+   }
 
+   free(message);
 }
 
 int main(int argc, char *argv[])
