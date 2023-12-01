@@ -107,9 +107,7 @@ void handleClient(Pk_Message *incMessage, PkEntry *registered_clients, struct so
 }
 
 int main(int argc, char *argv[])
-{
-    printf("Started Public Key Server!\n");
-    
+{   
     int sock; /* Socket for receiving datagrams */
     struct sockaddr_in sockAddr; /* Represents a TCp connection */
     unsigned int serverPort = -1; /* Server Port*/
@@ -124,7 +122,13 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
+    printf("\n==================================\n\n");
+    printf("Started Public Key Server!\n");
+    printf("==================================\n\n");
+
     serverPort = (unsigned int)strtol(argv[1], NULL, 10); /* Port */
+
+    printf("Listening on UDP %u\n\n", serverPort);
 
     /* Validate server port */
     if (serverPort == -1) {

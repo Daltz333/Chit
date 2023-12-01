@@ -102,11 +102,13 @@ int main(int argc, char *argv[])
    }
 
    int listeningPort = atoi(argv[1]);
-
+   
    printf("\n==============================\n");
    printf("Welcome to Chit!\n");
    printf("A TCP based encrypted messaging client written in C.\n");
    printf("==============================\n\n");
+
+   printf("Listening on TCP %i\n\n", listeningPort);
 
    char pkIp[20];
    int pkPort = 0;
