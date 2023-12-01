@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    printf("\n==================================\n\n");
+    printf("\n==================================\n");
     printf("Started Public Key Server!\n");
     printf("==================================\n\n");
 
