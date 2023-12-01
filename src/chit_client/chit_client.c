@@ -7,6 +7,7 @@
 #include <stdio.h>      /* for console input */
 #include <time.h>       /* for system time */
 #include <stdlib.h>     /* for string manip */
+#include <time.h>       /* User ID generation */
 #include "../shared/DieWithError.h"
 #include "../shared/Messages.h"
 #include "../shared/MessageUtil.h"
@@ -63,13 +64,31 @@ void requestConfigurationDetails(char *pkIp, int *pkPort, char *addrServIp, int 
    }
 }
 
-/** Registers the users public key to the public key server */
-void registerPublicKey(char *pkIp, int pkPort, int pubKey)
+/** 
+ * Registers the users public key to the public key server. 
+ */
+void registerPublicKey(int pubKey, int userId, struct sockaddr_in *targetSock, int sock)
 {
+   Pk_Message *message = malloc(sizeof(Pk_Message));
+   memset(message, 0, sizeof(Pk_Message));
    
+   message->message_type = REGISTER_PK;
+   message->public_key = pubKey;
+   message->user_id = userId;
+   message->timestamp = (long int)time(NULL);
+   
+   /* Send MSG */
+   if ((sendto(sock, message, sizeof(Pk_Message), 0, (struct sockaddr *)targetSock, sizeof(*targetSock))) < 0) {
+         printf("Failed to send ACK to client.\n");
+   }
+
+   free(message);
 }
 
-void registerAddress(char *addrServIp, int addrServPort, int listeningPort)
+/**
+ * Registers the users address and port to the address lookup server.
+*/
+void registerAddress(int listeningPort, int userId, struct sockaddr_in *targetSock, int sock)
 {
 
 }
@@ -97,9 +116,47 @@ int main(int argc, char *argv[])
    int prvKey = 0;
    requestConfigurationDetails(pkIp, &pkPort, addrServIp, &addrServPort, &pubKey, &prvKey);
 
-   printf("\n Register public key with Public Key Server.\n");
-   registerPublicKey(pkIp, pkPort, pubKey);
+   /* Initialize rand */
+   srand(time(NULL));
+   int userId = rand() % 5001; // generate ID from 0 -> 5000
+   printf("Generated user ID {%i}.\n", userId);
 
-   printf("\n Registering client with Address Server\n");
-   registerAddress(addrServIp, addrServPort, listeningPort);
+   /* Configure listening sock */
+   int sock = 0;
+   struct sockaddr_in sockAddr;
+
+   memset(&sockAddr, 0, sizeof(sockAddr)); /* Zero out structure */
+   sockAddr.sin_family = AF_INET; /* Internet address family */
+   sockAddr.sin_addr.s_addr = htonl(INADDR_ANY); /* any incoming interface */
+   sockAddr.sin_port = htons(listeningPort);
+
+   /* Build PK server sockAddr */
+   struct sockaddr_in pkSockAddr;
+   memset(&pkSockAddr, 0, sizeof(pkSockAddr));
+   pkSockAddr.sin_family = AF_INET;
+   pkSockAddr.sin_addr.s_addr = inet_addr(pkIp);
+   pkSockAddr.sin_port = htons(pkPort);
+
+   /* Build address server sockAddr */
+   struct sockaddr_in addrSockAddr;
+   memset(&addrSockAddr, 0, sizeof(addrSockAddr));
+   addrSockAddr.sin_family = AF_INET;
+   addrSockAddr.sin_addr.s_addr = inet_addr(addrServIp);
+   addrSockAddr.sin_port = htons(addrServPort);
+
+   /* Attempt to open up socket */
+   if ((sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
+        DieWithError("Establishing socket() failed.\n");
+   }
+
+   if (bind(sock, (struct sockaddr *) &sockAddr, sizeof(sockAddr)) < 0) {
+      DieWithError("Failed to bind to socket. Port may be in use.\n");
+   }
+
+   /* Register information with PK and Address servers*/
+   printf("Registering public key with Public Key Server.\n");
+   registerPublicKey(pubKey, userId, &pkSockAddr, sock);
+
+   printf("Registering client with Address Server\n");
+   registerAddress(listeningPort, userId, &addrSockAddr, sock);
 }

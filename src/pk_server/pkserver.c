@@ -37,11 +37,13 @@ void handleClient(Pk_Message *incMessage, PkEntry *registered_clients, struct so
                 {
                     /* User already exists, log and ignore */
                     printf("Cannot register user (%i) as they already exist.\n", entry.user_id);
+                    break;
                 } else if (entry.user_id == 0) {
                     // Entry is unused, let's fill it in
                     entry.user_id = incMessage->user_id;
                     entry.public_key = incMessage->public_key;
                     printf("Successfully registered user %i.\n", incMessage->user_id);
+                    break;
                 }
             }
 
