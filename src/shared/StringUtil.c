@@ -1,4 +1,40 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+/**
+ * Asks for user input from stdin with fallback
+ * Handles printing newline characters
+*/
+void askQuestion(char *question, char *response, char *fallback, int maxLen)
+{
+    printf("%s", question);
+    
+    if (fgets(response, 40, stdin))
+    {
+        response[strcspn(response, "\n")] = 0;
+    } else {
+        response = fallback;
+    }
+}
+
+/**
+ * Asks for user input from stdin
+ * Handles printing newline characters
+*/
+void askQuestionInt(char *question, int *response) 
+{
+    printf("%s", question);
+    
+    char temp[10];
+    if (fgets(temp, 10, stdin))
+    {
+        temp[strcspn(temp, "\n")] = 0;
+        *response = atoi(temp);
+    } else {
+        response = 0;
+    }
+}
 
 /**
  * Returns 0 if input string is a valid IPv4 address
