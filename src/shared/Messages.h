@@ -6,7 +6,7 @@ typedef uint32_t in_addr_t;
 
 /** Represents a message from a Chit client to another Chit client */
 typedef struct {
-    enum { MESSAGE } message_type; /* Message type */
+    enum { MESSAGE, CHIT_EXIT } message_type; /* Message type */
     unsigned long int timestamp; /* Timestamp of the sent message */
     unsigned int user_id; /* Sender ID of the message */
     unsigned long *payload; /* Encrypted message contents */
@@ -14,7 +14,7 @@ typedef struct {
 
 /** Represents a message to or from the Public Key Server */
 typedef struct {
-    enum {FETCH_PK, FETCH_PK_ACK, REGISTER_PK, REGISTER_PK_ACK} message_type; /* Message type */
+    enum {FETCH_PK, FETCH_PK_ACK, REGISTER_PK, REGISTER_PK_ACK, PK_EXIT} message_type; /* Message type */
     unsigned long int timestamp; /* Timestamp of the sent message */
     unsigned int user_id; /* Id of the user who sent the message, if applicable */
 
@@ -30,7 +30,7 @@ typedef struct {
 
 /** Represents a message to or from the Address Server */
 typedef struct {
-    enum {REGISTER_ADDR, REGISTER_ADDR_ACK, FETCH_ADDR, FETCH_ADDR_ACK, FETCH_CLIENTS, FETCH_CLIENTS_ACK} message_type; /* Message type */
+    enum {REGISTER_ADDR, REGISTER_ADDR_ACK, FETCH_ADDR, FETCH_ADDR_ACK, FETCH_CLIENTS, FETCH_CLIENTS_ACK, ADDR_EXIT} message_type; /* Message type */
     unsigned long int timestamp; /* Timestamp of the sent message */
     unsigned int user_id; /* Id of the user who sent the message, if applicable */
     unsigned int req_user_id; /* Id of the user we want to fetch address for */

@@ -15,6 +15,7 @@
 #include "../shared/StringUtil.h"
 #include "../shared/Globals.h"
 #include "listen_thread.h"
+#include "ThreadArgs.h"
 
 void getPkMessage(Pk_Message *message, struct sockaddr_in *pkServSock, int sock)
 {
@@ -207,10 +208,76 @@ void printHelp()
       printf("====================================\n\n");
 }
 
+void startChat(int user_id, struct sockaddr_in *addrServSock, int sock, ThreadArgs *targs)
+{
+   int connectUserId;
+   askQuestionInt("Enter the user ID to connect to: ", &connectUserId);
+
+   if (connectUserId == 0)
+   {
+      printf("Invalid user ID.\n");
+      return;
+   }
+
+   Addr_Serv_Message *addrMessage = malloc(sizeof(Addr_Serv_Message));
+   memset(addrMessage, 0, sizeof(sizeof(Addr_Serv_Message)));
+
+   addrMessage->message_type = FETCH_ADDR;
+   addrMessage->req_user_id = connectUserId;
+   addrMessage->user_id = user_id;
+
+   getAddrMessage(addrMessage, addrServSock, sock);
+
+   int clientSocket = socket(AF_INET, SOCK_STREAM, 0);
+   if (clientSocket == -1) {
+      perror("Error creating socket");
+      exit(EXIT_FAILURE);
+   }
+
+   // Set up server address structure
+   struct sockaddr_in serverAddr;
+   memset(&serverAddr, 0, sizeof(serverAddr));
+
+   serverAddr.sin_family = AF_INET;
+   serverAddr.sin_port = htons(addrMessage->remote_client_port);
+   serverAddr.sin_addr.s_addr = addrMessage->remote_client_ip;
+
+   if (connect(clientSocket, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1)
+   {
+      printf("Failed to establish connection with server\n");
+   }
+
+   char messageToSend[500];
+   for (;;)
+   {
+      askQuestion("Message: ", messageToSend, "err", 500);
+      if (strcmp(messageToSend, "err") == 0)
+      {
+         continue; // no message entered
+      }
+      
+      Chit_Message *msg = malloc(sizeof(Chit_Message));
+      memset(msg, 0, sizeof(Chit_Message));
+
+      msg->message_type = MESSAGE;
+      encryptMessage(msg->payload, messageToSend, sizeof(messageToSend));
+      msg->user_id = user_id;
+      msg->timestamp = (long int)time(NULL);
+
+      if (send(clientSocket, msg, sizeof(*msg), 0) == -1)
+      {
+        printf("Failed to send message to target.");
+      }
+
+      free(msg);
+   }
+   free(addrMessage);
+}
+
 /**
  * Loop continuously blocking for user input
 */
-void processStandardIn(int user_id, struct sockaddr_in *addrServSock, struct sockaddr_in *pkServSock, int sock)
+void processStandardIn(int user_id, struct sockaddr_in *addrServSock, struct sockaddr_in *pkServSock, int sock, ThreadArgs *targs)
 {
    char command[20];
    for (;;)
@@ -226,10 +293,7 @@ void processStandardIn(int user_id, struct sockaddr_in *addrServSock, struct soc
          printAvailUsers(user_id, addrServSock, sock);
       } else if (strcmp(command, "connect") == 0)
       {
-         printf("unimplemented\n");
-      } else if (strcmp(command, "sendmsg") == 0)
-      {
-         printf("unimplemented\n");
+         startChat(user_id, addrServSock, sock, targs);
       } else if (strcmp(command, "quit") == 0)
       {
          printf("unimplemented\n");
@@ -310,10 +374,17 @@ int main(int argc, char *argv[])
    printf("Registering client with Address Server\n");
    registerAddress(listeningPort, userId, &addrSockAddr, sock);
 
+   /* Initialize structure to hold our cross thread args */
+   ThreadArgs *targs = malloc(sizeof(ThreadArgs));
+   memset(targs, 0, sizeof(ThreadArgs));
+   
    /* Listen for incoming connection requests in another thread */
    pthread_t thread_id;
-   pthread_create(&thread_id, NULL, startListening, NULL);
+   pthread_create(&thread_id, NULL, startListening, targs);
 
    /* Block main thread for regular user input */
-   processStandardIn(userId, &addrSockAddr, &pkSockAddr, sock);
+   processStandardIn(userId, &addrSockAddr, &pkSockAddr, sock, targs);
+
+   /* Cleanup, we're done */
+   free(targs);
 }
