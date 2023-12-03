@@ -31,17 +31,17 @@ void handleClient(Pk_Message *incMessage, PkEntry *registered_clients, struct so
             // so this logic breaks if we have more than 100 clients registered
             for (int i = 0; i < sizeof(*registered_clients); i++)
             {
-                PkEntry entry = registered_clients[i];
+                PkEntry *entry = &registered_clients[i];
 
-                if (entry.user_id == incMessage->user_id) 
+                if (entry->user_id == incMessage->user_id) 
                 {
                     /* User already exists, log and ignore */
-                    printf("Cannot register user (%i) as they already exist.\n", entry.user_id);
+                    printf("Cannot register user (%i) as they already exist.\n", entry->user_id);
                     break;
-                } else if (entry.user_id == 0) {
+                } else if (entry->user_id == 0) {
                     // Entry is unused, let's fill it in
-                    entry.user_id = incMessage->user_id;
-                    entry.public_key = incMessage->public_key;
+                    entry->user_id = incMessage->user_id;
+                    entry->public_key = incMessage->public_key;
                     printf("Successfully registered user %i.\n", incMessage->user_id);
                     break;
                 }
@@ -69,11 +69,11 @@ void handleClient(Pk_Message *incMessage, PkEntry *registered_clients, struct so
             /* loop and look for client */
             for (int i = 0; i < sizeof(*registered_clients); i++)
             {
-                PkEntry entry = registered_clients[i];
+                PkEntry *entry = &registered_clients[i];
                 
-                if (entry.user_id == incMessage->req_user_id) {
+                if (entry->user_id == incMessage->req_user_id) {
                     /* found */
-                    found_public_key = entry.public_key;
+                    found_public_key = entry->public_key;
                     found = 1;
                 }
             }

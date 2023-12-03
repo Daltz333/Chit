@@ -40,18 +40,18 @@ void handleClient(Addr_Serv_Message *incMessage, AddressEntry *registered_client
             // so this logic breaks if we have more than 100 clients registered
             for (int i = 0; i < sizeof(*registered_clients); i++)
             {
-                AddressEntry entry = registered_clients[i];
+                AddressEntry *entry = &registered_clients[i];
 
-                if (entry.user_id == incMessage->user_id) 
+                if (entry->user_id == incMessage->user_id) 
                 {
                     /* User already exists, log and ignore */
-                    printf("Cannot register user (%i) as they already exist.\n", entry.user_id);
+                    printf("Cannot register user (%i) as they already exist.\n", entry->user_id);
                     break;
-                } else if (entry.user_id == 0) {
+                } else if (entry->user_id == 0) {
                     // Entry is unused, let's fill it in
-                    entry.user_id = incMessage->user_id;
-                    entry.clientIp = clntAddr.sin_addr.s_addr;
-                    entry.clientListenPort = incMessage->user_port;
+                    entry->user_id = incMessage->user_id;
+                    entry->clientIp = clntAddr.sin_addr.s_addr;
+                    entry->clientListenPort = incMessage->user_port;
 
                     printf("Successfully registered user %i.\n", incMessage->user_id);
                     break;
@@ -81,12 +81,12 @@ void handleClient(Addr_Serv_Message *incMessage, AddressEntry *registered_client
             /* loop and look for client */
             for (int i = 0; i < sizeof(*registered_clients); i++)
             {
-                AddressEntry entry = registered_clients[i];
+                AddressEntry *entry = &registered_clients[i];
                 
-                if (entry.user_id == incMessage->user_id) {
+                if (entry->user_id == incMessage->user_id) {
                     /* found */
-                    found_address = entry.clientIp;
-                    found_port = entry.clientListenPort;
+                    found_address = entry->clientIp;
+                    found_port = entry->clientListenPort;
                     found = 1;
                 }
             }
@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
     int sock; /* Socket for receiving datagrams */
     struct sockaddr_in sockAddr; /* Represents a TCp connection */
     unsigned int serverPort = -1; /* Server Port*/
-    AddressEntry registered_pks[100]; /* Array of registered public keys */
+    AddressEntry registered_pks[5]; /* Array of registered public keys */
 
     /* Clear any existing cruft */
     memset(registered_pks, 0, sizeof(registered_pks));
