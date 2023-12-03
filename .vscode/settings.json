@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "messageutil.h": "c",
-        "chit_client.h": "c"
+        "chit_client.h": "c",
+        "addressentry.h": "c"
     }
 }

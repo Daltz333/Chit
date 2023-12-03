@@ -12,11 +12,11 @@ PK_SERVER_DIR = $(SRC_DIR)/pk_server
 CHIT_CLIENT_DIR = $(SRC_DIR)/chit_client
 SHARED_DIR = $(SRC_DIR)/shared
 
-SHARED_SRC := $(shell find $(SHARED_DIR) -name '*.c' -o -name '*.h')
+SHARED_SRC := $(shell find $(SHARED_DIR) -name '*.c')
 
-ADDRESS_SERVER_SRC := $(shell find $(ADDRESS_SERVER_DIR) -name '*.c' -o -name '*.h') $(SHARED_SRC)
-PK_SERVER_SRC := $(shell find $(PK_SERVER_DIR) -name '*.c' -o -name '*.h') $(SHARED_SRC)
-CHIT_CLIENT_SRC := $(shell find $(CHIT_CLIENT_DIR) -name '*.c' -o -name '*.h') $(SHARED_SRC)
+ADDRESS_SERVER_SRC := $(shell find $(ADDRESS_SERVER_DIR) -name '*.c') $(SHARED_SRC)
+PK_SERVER_SRC := $(shell find $(PK_SERVER_DIR) -name '*.c') $(SHARED_SRC)
+CHIT_CLIENT_SRC := $(shell find $(CHIT_CLIENT_DIR) -name '*.c') $(SHARED_SRC)
 
 # Object files for each target
 ADDRESS_SERVER_OBJ = $(patsubst $(ADDRESS_SERVER_DIR)/%.c, $(OBJ_DIR)/%.o, $(ADDRESS_SERVER_SRC))

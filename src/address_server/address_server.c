@@ -4,23 +4,10 @@
 #include <stdlib.h>     /* for atoi() and exit() */
 #include <string.h>     /* for memset() */
 #include <unistd.h>     /* for close() */
+
+#include "../shared/AddressEntry.h"
 #include "../shared/Messages.h"
 #include "../shared/DieWithError.h"
-
-/* Represents an entry in the address "DB" */
-typedef struct {
-    /**
-     * Dotted quad IP address.
-     * We opt to use this over storing the sock as I figured that'd be more expensive
-    */
-    in_addr_t clientIp; // dotted quad IP address
-
-    // Port that the client is listening on
-    unsigned int clientListenPort;
-
-    // ID of the user
-    unsigned int user_id;
-} AddressEntry;
 
 /**
  * Handles a given client connection. 
@@ -73,6 +60,12 @@ void handleClient(Addr_Serv_Message *incMessage, AddressEntry *registered_client
             free(outMessage);
             break;
         
+        case FETCH_CLIENTS:
+            Addr_Serv_Message *res = malloc(sizeof(Addr_Serv_Message));
+            memset(res, 0, sizeof(*res));
+
+            res->message_type = FETCH_CLIENTS_ACK;
+
         case FETCH_ADDR_ACK:
             int found = 0;
             in_addr_t found_address;
