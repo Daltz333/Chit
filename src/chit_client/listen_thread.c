@@ -9,7 +9,6 @@ void *startListening(void *vargp)
 {
     for(;;)
     {
-        printf("sleeping\n");
         sleep(5);
     }
 }
