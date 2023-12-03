@@ -4,7 +4,7 @@
 #include <stdlib.h>     /* for atoi() and exit() */
 #include <string.h>     /* for memset() */
 #include <unistd.h>     /* for close() */
-
+#include <time.h>       /* for timestamps */
 #include "../shared/AddressEntry.h"
 #include "../shared/Messages.h"
 #include "../shared/DieWithError.h"
@@ -51,6 +51,7 @@ void handleClient(Addr_Serv_Message *incMessage, AddressEntry *registered_client
             outMessage->message_type = REGISTER_ADDR_ACK;
             outMessage->remote_client_ip = clntAddr.sin_addr.s_addr;
             outMessage->user_id = incMessage->user_id;
+            outMessage->timestamp = (long int)time(NULL);
 
             /* Send ACK */
             if ((sendto(sock, outMessage, sizeof(outMessage), 0, (struct sockaddr *)&clntAddr, sizeof(clntAddr))) < 0) {
@@ -65,7 +66,24 @@ void handleClient(Addr_Serv_Message *incMessage, AddressEntry *registered_client
             memset(res, 0, sizeof(*res));
 
             res->message_type = FETCH_CLIENTS_ACK;
+            res->timestamp = (long int)time(NULL);
+            size_t registered_clients_size = sizeof(*registered_clients);
+            for(int i = 0; i < registered_clients_size; i++) {
+                if (i > sizeof(res->clients))
+                {
+                    DieWithError("Mismatch size between FETCH_CLIENTS_ACK and REGISTERED_CLIENTS!\n");
+                }
 
+                // Copy contents into response array
+                res->clients[i] = registered_clients[i];
+            }
+
+            /* Send ACK */
+            if ((sendto(sock, res, sizeof(*res), 0, (struct sockaddr *)&clntAddr, sizeof(clntAddr))) < 0) {
+                printf("Failed to send ACK to client.\n");
+            }
+
+            free(res);
         case FETCH_ADDR_ACK:
             int found = 0;
             in_addr_t found_address;
@@ -89,7 +107,8 @@ void handleClient(Addr_Serv_Message *incMessage, AddressEntry *registered_client
 
             *ack = *incMessage; // make contents of pointer the same
             ack->message_type = FETCH_ADDR_ACK;
-                        
+            ack->timestamp = (long int)time(NULL);
+
             if (found == 0) 
             {
                 /* NOT FOUND */
@@ -101,7 +120,7 @@ void handleClient(Addr_Serv_Message *incMessage, AddressEntry *registered_client
             }
 
             /* Send ACK */
-            if ((sendto(sock, ack, sizeof(ack), 0, (struct sockaddr *)&clntAddr, sizeof(clntAddr))) < 0) {
+            if ((sendto(sock, ack, sizeof(*ack), 0, (struct sockaddr *)&clntAddr, sizeof(clntAddr))) < 0) {
                 printf("Failed to send ACK to client.\n");
             }
 

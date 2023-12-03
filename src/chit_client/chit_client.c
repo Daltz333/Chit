@@ -82,6 +82,24 @@ void registerPublicKey(int pubKey, int userId, struct sockaddr_in *targetSock, i
          printf("Failed to send ACK to client.\n");
    }
 
+   ssize_t recvMsgSize;
+   struct sockaddr_in echoClntAddr;
+   int clntLen = sizeof(&echoClntAddr);
+
+   /* Block until receive message from server */
+   if ((recvMsgSize = recvfrom(sock, message, sizeof(*message), 0,
+                              (struct sockaddr *) &echoClntAddr, (socklen_t *)&clntLen)) < 0)
+   {
+      DieWithError("recvfrom() failed.");
+   }
+
+   if (message->message_type == (int)REGISTER_PK_ACK)
+   {
+      printf("Successfully registered client.\n");
+   } else {
+      DieWithError("Failed to register client.\n");
+   }
+
    free(message);
 }
 
@@ -101,6 +119,24 @@ void registerAddress(int listeningPort, int userId, struct sockaddr_in *targetSo
    /* Send MSG */
    if ((sendto(sock, message, sizeof(Addr_Serv_Message), 0, (struct sockaddr *)targetSock, sizeof(*targetSock))) < 0) {
          printf("Failed to send ACK to client.\n");
+   }
+
+   ssize_t recvMsgSize;
+   struct sockaddr_in echoClntAddr;
+   int clntLen = sizeof(&echoClntAddr);
+
+   /* Block until receive message from server */
+   if ((recvMsgSize = recvfrom(sock, message, sizeof(*message), 0,
+                              (struct sockaddr *) &echoClntAddr, (socklen_t *)&clntLen)) < 0)
+   {
+      DieWithError("recvfrom() failed.");
+   }
+
+   if (message->message_type == REGISTER_ADDR_ACK)
+   {
+      printf("Successfully registered client.\n");
+   } else {
+      DieWithError("Failed to register client.\n");
    }
 
    free(message);
