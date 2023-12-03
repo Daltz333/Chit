@@ -2,6 +2,7 @@
     "files.associations": {
         "messageutil.h": "c",
         "chit_client.h": "c",
-        "addressentry.h": "c"
+        "addressentry.h": "c",
+        "messages.h": "c"
     }
 }

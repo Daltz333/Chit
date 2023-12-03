@@ -7,11 +7,52 @@
 #include <stdio.h>      /* for console input */
 #include <time.h>       /* for system time */
 #include <stdlib.h>     /* for string manip */
-#include <time.h>       /* User ID generation */
+#include <time.h>       /* User ID generation and timestamp */
+#include <pthread.h>    /* Threading */
 #include "../shared/DieWithError.h"
 #include "../shared/Messages.h"
 #include "../shared/MessageUtil.h"
 #include "../shared/StringUtil.h"
+#include "../shared/Globals.h"
+#include "listen_thread.h"
+
+void getPkMessage(Pk_Message *message, struct sockaddr_in *pkServSock, int sock)
+{
+   /* Send MSG */
+   if ((sendto(sock, message, sizeof(Pk_Message), 0, (struct sockaddr *)pkServSock, sizeof(*pkServSock))) < 0) {
+         printf("Failed to send ACK to client.\n");
+   }
+
+   ssize_t recvMsgSize;
+   struct sockaddr_in echoClntAddr;
+   int clntLen = sizeof(&echoClntAddr);
+
+   /* Block until receive message from server */
+   if ((recvMsgSize = recvfrom(sock, message, sizeof(*message), 0,
+                              (struct sockaddr *) &echoClntAddr, (socklen_t *)&clntLen)) < 0)
+   {
+      DieWithError("recvfrom() failed.");
+   }
+}
+
+void getAddrMessage(Addr_Serv_Message *message, struct sockaddr_in *addrServSock, int sock)
+{
+   /* Send MSG */
+   if ((sendto(sock, message, sizeof(Addr_Serv_Message), 0, (struct sockaddr *)addrServSock, sizeof(*addrServSock))) < 0) {
+         printf("Failed to send ACK to client.\n");
+   }
+
+   ssize_t recvMsgSize;
+   struct sockaddr_in echoClntAddr;
+   int clntLen = sizeof(&echoClntAddr);
+
+   /* Block until receive message from server */
+   if ((recvMsgSize = recvfrom(sock, message, sizeof(*message), 0,
+                              (struct sockaddr *) &echoClntAddr, (socklen_t *)&clntLen)) < 0)
+   {
+      DieWithError("recvfrom() failed.");
+   }
+}
 
 void requestConfigurationDetails(char *pkIp, int *pkPort, char *addrServIp, int *addrServPort, int *pubKey, int *prvKey)
 {
@@ -77,27 +118,13 @@ void registerPublicKey(int pubKey, int userId, struct sockaddr_in *targetSock, i
    message->user_id = userId;
    message->timestamp = (long int)time(NULL);
    
-   /* Send MSG */
-   if ((sendto(sock, message, sizeof(Pk_Message), 0, (struct sockaddr *)targetSock, sizeof(*targetSock))) < 0) {
-         printf("Failed to send ACK to client.\n");
-   }
-
-   ssize_t recvMsgSize;
-   struct sockaddr_in echoClntAddr;
-   int clntLen = sizeof(&echoClntAddr);
-
-   /* Block until receive message from server */
-   if ((recvMsgSize = recvfrom(sock, message, sizeof(*message), 0,
-                              (struct sockaddr *) &echoClntAddr, (socklen_t *)&clntLen)) < 0)
-   {
-      DieWithError("recvfrom() failed.");
-   }
+   getPkMessage(message, targetSock, sock);
 
    if (message->message_type == (int)REGISTER_PK_ACK)
    {
-      printf("Successfully registered client.\n");
+      printf("Successfully registered with PK server.\n");
    } else {
-      DieWithError("Failed to register client.\n");
+      DieWithError("Failed to register with PK server.\n");
    }
 
    free(message);
@@ -106,7 +133,7 @@ void registerPublicKey(int pubKey, int userId, struct sockaddr_in *targetSock, i
 /**
  * Registers the users address and port to the address lookup server.
 */
-void registerAddress(int listeningPort, int userId, struct sockaddr_in *targetSock, int sock)
+void registerAddress(int listeningPort, int userId, struct sockaddr_in *addrSock, int sock)
 {
    Addr_Serv_Message *message = malloc(sizeof(Addr_Serv_Message));
    memset(message, 0, sizeof(Addr_Serv_Message));
@@ -116,30 +143,102 @@ void registerAddress(int listeningPort, int userId, struct sockaddr_in *targetSo
    message->user_id = userId;
    message->timestamp = (long int)time(NULL);
    
-   /* Send MSG */
-   if ((sendto(sock, message, sizeof(Addr_Serv_Message), 0, (struct sockaddr *)targetSock, sizeof(*targetSock))) < 0) {
-         printf("Failed to send ACK to client.\n");
-   }
+   getAddrMessage(message, addrSock, sock);
 
-   ssize_t recvMsgSize;
-   struct sockaddr_in echoClntAddr;
-   int clntLen = sizeof(&echoClntAddr);
-
-   /* Block until receive message from server */
-   if ((recvMsgSize = recvfrom(sock, message, sizeof(*message), 0,
-                              (struct sockaddr *) &echoClntAddr, (socklen_t *)&clntLen)) < 0)
+   if (message->message_type == (int)REGISTER_ADDR_ACK)
    {
-      DieWithError("recvfrom() failed.");
-   }
-
-   if (message->message_type == REGISTER_ADDR_ACK)
+      printf("Successfully registered with address server.\n");
+   } else
    {
-      printf("Successfully registered client.\n");
-   } else {
-      DieWithError("Failed to register client.\n");
+      DieWithError("Failed to register with address server.\n");
    }
 
    free(message);
+}
+
+/**
+ * Prints the available users to stdout
+*/
+void printAvailUsers(int userId, struct sockaddr_in *addrSock, int sock)
+{
+   Addr_Serv_Message *message = malloc(sizeof(Addr_Serv_Message));
+   memset(message, 0, sizeof(Addr_Serv_Message));
+
+   message->message_type = FETCH_CLIENTS;
+   message->user_id = userId;
+   message->timestamp = (long int)time(NULL);
+
+   getAddrMessage(message, addrSock, sock);
+
+   if (message->message_type == (int)FETCH_CLIENTS_ACK)
+   {
+      printf("\nAvailable users: \n\n");
+      for (int i = 0; i < MAX_CLIENTS; i++)
+      {
+         AddressEntry *entry = &message->clients[i];
+
+         /* Don't print ourselves */
+         if (entry->user_id != userId && entry->user_id != 0)
+         {
+            printf("User: %i\n", entry->user_id);
+         }
+      }
+      printf("\n");
+   } else
+   {
+      printf("Server responded with an invalid response code. %i\n", message->message_type);
+   }
+
+   free(message);
+}
+
+/**
+ * Prints the help text
+*/
+void printHelp()
+{
+      printf("\nThe following are valid commands: \n");
+      printf("====================================\n\n");
+      printf("help - Gets a list of commands\n");
+      printf("who - Gets a list of connected users\n");
+      printf("connect - Sends a connection request to a given user ID\n");
+      printf("sendmsg - Sends a message to the given user\n");
+      printf("quit - Exists the current connection\n");
+      printf("====================================\n\n");
+}
+
+/**
+ * Loop continuously blocking for user input
+*/
+void processStandardIn(int user_id, struct sockaddr_in *addrServSock, struct sockaddr_in *pkServSock, int sock)
+{
+   char command[20];
+   for (;;)
+   {
+      memset(command, 0, sizeof(command));
+      askQuestion("Enter in a command, or type help for a list of commands: ", command, "help", 20);
+
+      if (strcmp(command, "help") == 0) 
+      {
+         printHelp();
+      } else if (strcmp(command, "who") == 0)
+      {
+         printAvailUsers(user_id, addrServSock, sock);
+      } else if (strcmp(command, "connect") == 0)
+      {
+         printf("unimplemented\n");
+      } else if (strcmp(command, "sendmsg") == 0)
+      {
+         printf("unimplemented\n");
+      } else if (strcmp(command, "quit") == 0)
+      {
+         printf("unimplemented\n");
+      } else 
+      {
+         // unknown, print help
+         printHelp();
+      }
+   }
 }
 
 int main(int argc, char *argv[])
@@ -210,4 +309,11 @@ int main(int argc, char *argv[])
 
    printf("Registering client with Address Server\n");
    registerAddress(listeningPort, userId, &addrSockAddr, sock);
+
+   /* Listen for incoming connection requests in another thread */
+   pthread_t thread_id;
+   pthread_create(&thread_id, NULL, startListening, NULL);
+
+   /* Block main thread for regular user input */
+   processStandardIn(userId, &addrSockAddr, &pkSockAddr, sock);
 }

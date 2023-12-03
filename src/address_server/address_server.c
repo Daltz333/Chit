@@ -67,15 +67,15 @@ void handleClient(Addr_Serv_Message *incMessage, AddressEntry *registered_client
 
             res->message_type = FETCH_CLIENTS_ACK;
             res->timestamp = (long int)time(NULL);
-            size_t registered_clients_size = sizeof(*registered_clients);
-            for(int i = 0; i < registered_clients_size; i++) {
-                if (i > sizeof(res->clients))
-                {
-                    DieWithError("Mismatch size between FETCH_CLIENTS_ACK and REGISTERED_CLIENTS!\n");
-                }
+
+            for(int i = 0; i < MAX_CLIENTS; i++) 
+            {
+                AddressEntry *entry = &registered_clients[i];
 
                 // Copy contents into response array
-                res->clients[i] = registered_clients[i];
+                res->clients[i].clientIp = entry->clientIp;
+                res->clients[i].clientListenPort = entry->clientListenPort;
+                res->clients[i].user_id = entry->user_id;
             }
 
             /* Send ACK */
@@ -84,7 +84,9 @@ void handleClient(Addr_Serv_Message *incMessage, AddressEntry *registered_client
             }
 
             free(res);
-        case FETCH_ADDR_ACK:
+            break;
+            
+        case FETCH_ADDR:
             int found = 0;
             in_addr_t found_address;
             int found_port = 0;
@@ -138,10 +140,10 @@ int main(int argc, char *argv[])
     int sock; /* Socket for receiving datagrams */
     struct sockaddr_in sockAddr; /* Represents a TCp connection */
     unsigned int serverPort = -1; /* Server Port*/
-    AddressEntry registered_pks[5]; /* Array of registered public keys */
+    AddressEntry registered_addr[5]; /* Array of registered public keys */
 
     /* Clear any existing cruft */
-    memset(registered_pks, 0, sizeof(registered_pks));
+    memset(registered_addr, 0, sizeof(registered_addr));
 
     if (argc != 2)    /* Test for correct number of arguments */
     {
@@ -193,7 +195,7 @@ int main(int argc, char *argv[])
         }
 
         /* Delegate to function to keep main() clean */
-        handleClient(incMessage, registered_pks, echoClntAddr, sock);
+        handleClient(incMessage, registered_addr, echoClntAddr, sock);
 
         free(incMessage);
     }

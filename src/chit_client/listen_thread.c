@@ -1,8 +1,15 @@
+#include <unistd.h>     /* Sleep */
+#include <stdio.h>      /* Printf */
 /**
  * Start listening for any incoming connections
- * Params: clientConnected
+ * Params: Pointers to state that we poll for requests from the main thread
+ * requestConnect -1 for when we are exiting cleanly
 */
-void startListening(int *connectRequestAccept, int listeningPort)
+void *startListening(void *vargp)
 {
-    
+    for(;;)
+    {
+        printf("sleeping\n");
+        sleep(5);
+    }
 }

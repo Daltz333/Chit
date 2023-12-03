@@ -1,1 +1,1 @@
-void startListening(int *connectRequestAccept, int listeningPort);
+void *startListening(void *vargp);
