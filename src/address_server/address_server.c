@@ -87,7 +87,6 @@ void handleClient(Addr_Serv_Message *incMessage, AddressEntry *registered_client
             break;
 
         case FETCH_ADDR:
-            int found = 0;
             in_addr_t found_address;
             int found_port = 0;
 
@@ -101,7 +100,7 @@ void handleClient(Addr_Serv_Message *incMessage, AddressEntry *registered_client
                     /* found */
                     found_address = entry->clientIp;
                     found_port = entry->clientListenPort;
-                    found = 1;
+                    break;
                 }
             }
 
@@ -111,16 +110,8 @@ void handleClient(Addr_Serv_Message *incMessage, AddressEntry *registered_client
             *ack = *incMessage; // make contents of pointer the same
             ack->message_type = FETCH_ADDR_ACK;
             ack->timestamp = (long int)time(NULL);
-
-            if (found == 0) 
-            {
-                /* NOT FOUND */
-                ack->remote_client_ip = 0;
-                ack->remote_client_port = 0;
-            } else {
-                ack->remote_client_ip = found_address;
-                ack->remote_client_port = found_port;
-            }
+            ack->remote_client_ip = found_address;
+            ack->remote_client_port = found_port;
 
             /* Send ACK */
             if ((sendto(sock, ack, sizeof(*ack), 0, (struct sockaddr *)&clntAddr, sizeof(clntAddr))) < 0) {
@@ -130,6 +121,38 @@ void handleClient(Addr_Serv_Message *incMessage, AddressEntry *registered_client
             free(ack);
             break;
             
+        case FETCH_ADDR_IP:
+            int found_user = 0;
+
+            /* loop and look for client */
+            for (int i = 0; i < sizeof(MAX_CLIENTS); i++)
+            {
+                AddressEntry *entry = &registered_clients[i];
+                
+                if (entry->clientIp == incMessage->remote_client_ip) 
+                {
+                    /* found */
+                    found_user = entry->user_id;
+                    break;
+                }
+            }
+
+            Addr_Serv_Message *res2 = malloc(sizeof(Addr_Serv_Message));
+            memset(res2, 0, sizeof(*res));
+
+            *res2 = *incMessage; // make contents of pointer the same
+            res2->message_type = FETCH_ADDR_IP_ACK;
+            res2->timestamp = (long int)time(NULL);
+            res2->req_user_id = found_user;
+
+            /* Send ACK */
+            if ((sendto(sock, res2, sizeof(*res2), 0, (struct sockaddr *)&clntAddr, sizeof(clntAddr))) < 0) {
+                printf("Failed to send ACK to client.\n");
+            }
+
+            free(res2);
+            break;
+
         default:
             printf("Received an unhandled message type %i. Ignoring.\n", (int)incMessage->message_type);
             break;

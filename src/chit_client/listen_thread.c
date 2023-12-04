@@ -6,12 +6,13 @@
 #include "ThreadArgs.h"
 #include "../shared/StringUtil.h"
 #include "../shared/Messages.h"
+#include "../shared/MessageUtil.h"
 
 /* Begins listening for messages until args -> ConnectStatus = EXIT*/
 void listenForMessages(void *vargp)
 {
     ThreadArgs *args = vargp;
-    char buffer[MAX_MESSAGE_SIZE];
+    unsigned long buffer[MAX_MESSAGE_SIZE];
 
     // Connection request allowed, accept, wait for messages
     if (args->ConnectStatus == (int)ACCEPTED)
@@ -25,26 +26,14 @@ void listenForMessages(void *vargp)
                 break;
             }
 
-            memset(buffer, '\0', sizeof(buffer));
+            memset(buffer, 0, sizeof(buffer));
             read(args->clientSock, buffer, MAX_MESSAGE_SIZE);
 
-            char clnData[MAX_MESSAGE_SIZE];
-            memset(clnData, '\0', MAX_MESSAGE_SIZE);
-
-            int x = 0;
-            for (int i = 0; i < MAX_MESSAGE_SIZE; i++)
-            {
-                /* for some reasons, there are gaps in the message, let's fix that */
-                if ((int)buffer[i] > 0)
-                {
-                    clnData[x] = buffer[i];
-                    x += 1;
-                }
-            }
-
-            if (strlen(clnData) != 0)
+            if (buffer != 0)
             { 
-                printf("Received msg: %s\n", clnData);
+                char decryptedMessage[500];
+                decryptMessage(decryptedMessage, buffer, args->prvKey);
+                printf("Received msg: %s\n", decryptedMessage);
             }
         }
     }
@@ -112,7 +101,9 @@ void *startServThread(void *vargp)
         args->ConnectStatus = WAITING;
         printf("\nConnection request %s:%d. Type accept/deny to confirm.\n", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
 
+        // Update connection holder
         args->clientSock = client_sock;
+        args->connectedAddr = client_address.sin_addr;
 
         if (server_sock < 0)
         {

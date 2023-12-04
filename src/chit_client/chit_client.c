@@ -29,7 +29,7 @@ void getPkMessage(Pk_Message *message, struct sockaddr_in *pkServSock, int sock)
    int clntLen = sizeof(&echoClntAddr);
 
    /* Block until receive message from server */
-   if ((recvMsgSize = recvfrom(sock, message, sizeof(*message), 0,
+   if ((recvMsgSize = recvfrom(sock, message, sizeof(Pk_Message), 0,
                               (struct sockaddr *) &echoClntAddr, (socklen_t *)&clntLen)) < 0)
    {
       DieWithError("recvfrom() failed.");
@@ -132,6 +132,31 @@ void registerPublicKey(int pubKey, int userId, struct sockaddr_in *targetSock, i
 }
 
 /**
+ * Fetches a given user from the connected IP addr
+*/
+int fetchUserFromIp(struct sockaddr_in *addrSock, struct in_addr ipAddr, int sock)
+{
+   Addr_Serv_Message *message = malloc(sizeof(Addr_Serv_Message));
+   memset(message, 0, sizeof(Addr_Serv_Message));
+   
+   message->message_type = FETCH_ADDR_IP;
+   message->remote_client_ip = ipAddr.s_addr;
+   message->timestamp = (long int)time(NULL);
+   
+   getAddrMessage(message, addrSock, sock);
+
+   if (message->message_type == (int)FETCH_ADDR_IP_ACK)
+   {
+      return message->req_user_id;
+   } else
+   {
+      return 0;
+   }
+
+   free(message);
+}
+
+/**
  * Registers the users address and port to the address lookup server.
 */
 void registerAddress(int listeningPort, int userId, struct sockaddr_in *addrSock, int sock)
@@ -209,7 +234,7 @@ void printHelp()
       printf("====================================\n\n");
 }
 
-int startChat(int user_id, struct sockaddr_in *addrServSock, int sock, ThreadArgs *targs)
+int startChat(int user_id, struct sockaddr_in *addrServSock, int sock, ThreadArgs *targs, int *connected_user_id)
 {
    int connectUserId;
    askQuestionInt("Enter the user ID to connect to: ", &connectUserId);
@@ -229,8 +254,8 @@ int startChat(int user_id, struct sockaddr_in *addrServSock, int sock, ThreadArg
 
    getAddrMessage(addrMessage, addrServSock, sock);
 
-   targs->clientSock = socket(AF_INET, SOCK_STREAM, 0);
-   if (targs->clientSock == -1) {
+   int clientSock = socket(AF_INET, SOCK_STREAM, 0);
+   if (clientSock == -1) {
       printf("Error creating socket");
       return -1; 
    }
@@ -249,17 +274,50 @@ int startChat(int user_id, struct sockaddr_in *addrServSock, int sock, ThreadArg
    serverAddr.sin_port = htons(addrMessage->remote_client_port);
    serverAddr.sin_addr.s_addr = addrMessage->remote_client_ip;
 
-   if (connect(targs->clientSock, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1)
+   if (connect(clientSock, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1)
    {
       printf("Failed to establish connection with server\n");
       return -1;
    }
 
+   // Copy user id into ref
+   *connected_user_id = connectUserId;
+   targs->clientSock = clientSock;
    free(addrMessage);
    return 0;
 }
 
-void sendMsg(ThreadArgs *targs)
+/**
+ * Fetches the public key for a given user
+ * Returns the public key, or -1 if not found
+*/
+int getPubKey(int remoteUserId, struct sockaddr_in *pkSock, int sock)
+{
+   Pk_Message *pubKey = malloc(sizeof(Pk_Message));
+   memset(pubKey, 0, sizeof(Pk_Message));
+
+   pubKey->message_type = FETCH_PK;
+   pubKey->req_user_id = remoteUserId;
+   pubKey->timestamp = (long int)time(NULL);
+
+   getPkMessage(pubKey, pkSock, sock);
+
+   // Copy to buffer, then free
+   int message = pubKey->message_type;
+   int key = pubKey->public_key;
+   free(pubKey);
+
+   if (message == (int)FETCH_PK_ACK)
+   {
+      return key;
+   } else 
+   {
+      printf("Unknown response from PK server, %i\n", message);
+      return -1;
+   }
+}
+
+void sendMsg(ThreadArgs *targs, struct sockaddr_in *pkServSock, int sock, int user_id)
 {
    char msg[MAX_MESSAGE_SIZE];
    askQuestion("Type your message: ", msg, "err", MAX_MESSAGE_SIZE);
@@ -269,8 +327,10 @@ void sendMsg(ThreadArgs *targs)
       return;
    }
 
+   int user_pub_key = getPubKey(user_id, pkServSock, sock);
+
    unsigned long payload[MAX_MESSAGE_SIZE] = {0};
-   encryptMessage(payload, msg, sizeof(msg));
+   encryptMessage(payload, msg, sizeof(msg), user_pub_key);
 
    int sentBytes = send(targs->clientSock, payload, MAX_MESSAGE_SIZE, 0);
    if (sentBytes == -1)
@@ -287,7 +347,7 @@ void sendMsg(ThreadArgs *targs)
 void processStandardIn(int user_id, struct sockaddr_in *addrServSock, struct sockaddr_in *pkServSock, int sock, ThreadArgs *targs)
 {
    char command[20];
-
+   int connected_user_id = 0;
    pthread_t thread_id;
 
    for (;;)
@@ -303,7 +363,7 @@ void processStandardIn(int user_id, struct sockaddr_in *addrServSock, struct soc
          printAvailUsers(user_id, addrServSock, sock);
       } else if (strcmp(command, "connect") == 0)
       {
-         int res = startChat(user_id, addrServSock, sock, targs);
+         int res = startChat(user_id, addrServSock, sock, targs, &connected_user_id);
          if (res == 0)
          {
             pthread_create(&thread_id, NULL, listenForMessages, targs);
@@ -319,9 +379,15 @@ void processStandardIn(int user_id, struct sockaddr_in *addrServSock, struct soc
          }
       } else if (strcmp(command, "sendmsg") == 0)
       {
+         /* User_id should only ever be zero if we are client connected */
+         if (connected_user_id == 0)
+         {
+            connected_user_id = fetchUserFromIp(addrServSock, targs->connectedAddr, sock);
+         }
+
          if (targs->clientSock != 0)
          {
-            sendMsg(targs);
+            sendMsg(targs, pkServSock, sock, connected_user_id);
          } else {
             printf("Not currently connected!\n");
          }
@@ -419,6 +485,7 @@ int main(int argc, char *argv[])
    ThreadArgs *targs = malloc(sizeof(ThreadArgs));
    memset(targs, 0, sizeof(ThreadArgs));
    targs->listeningPort = listeningPort;
+   targs->prvKey = prvKey;
    
    /* Listen for incoming connection requests in another thread */
    pthread_t thread_id;

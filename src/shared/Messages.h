@@ -30,7 +30,7 @@ typedef struct {
 
 /** Represents a message to or from the Address Server */
 typedef struct {
-    enum {REGISTER_ADDR, REGISTER_ADDR_ACK, FETCH_ADDR, FETCH_ADDR_ACK, FETCH_CLIENTS, FETCH_CLIENTS_ACK, ADDR_EXIT} message_type; /* Message type */
+    enum {REGISTER_ADDR, REGISTER_ADDR_ACK, FETCH_ADDR, FETCH_ADDR_ACK, FETCH_CLIENTS, FETCH_CLIENTS_ACK, ADDR_EXIT, FETCH_ADDR_IP, FETCH_ADDR_IP_ACK} message_type; /* Message type */
     unsigned long int timestamp; /* Timestamp of the sent message */
     unsigned int user_id; /* Id of the user who sent the message, if applicable */
     unsigned int req_user_id; /* Id of the user we want to fetch address for */

@@ -63,7 +63,6 @@ void handleClient(Pk_Message *incMessage, PkEntry *registered_clients, struct so
             break;
         
         case FETCH_PK:
-            int found = 0;
             int found_public_key = 0;
 
             /* loop and look for client */
@@ -74,30 +73,23 @@ void handleClient(Pk_Message *incMessage, PkEntry *registered_clients, struct so
                 if (entry->user_id == incMessage->req_user_id) {
                     /* found */
                     found_public_key = entry->public_key;
-                    found = 1;
+                    break;
                 }
             }
 
-            Pk_Message *ack = malloc(sizeof(Pk_Message));
-            memset(ack, 0, sizeof(*ack));
+            Pk_Message *resMessage = malloc(sizeof(Pk_Message));
+            memset(resMessage, 0, sizeof(*resMessage));
+            
+            resMessage->message_type = FETCH_PK_ACK;
+            resMessage->public_key = found_public_key;
 
-            *ack = *incMessage; // make contents of pointer the same
-            ack->message_type = FETCH_PK_ACK;
-                        
-            if (found == 0) 
-            {
-                /* NOT FOUND */
-                ack->public_key = 0;
-            } else {
-                ack->public_key = found_public_key;
-            }
-
+            printf("Sending with public key %i.\n", resMessage->public_key);
             /* Send ACK */
-            if ((sendto(sock, ack, sizeof(ack), 0, (struct sockaddr *)&clntAddr, sizeof(clntAddr))) < 0) {
+            if ((sendto(sock, resMessage, sizeof(*resMessage), 0, (struct sockaddr *)&clntAddr, sizeof(clntAddr))) < 0) {
                 printf("Failed to send ACK to client.\n");
             }
 
-            free(ack);
+            free(resMessage);
             break;
             
         default:

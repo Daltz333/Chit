@@ -3,17 +3,17 @@
 #include <math.h>
 #include "MessageUtil.h"
 #include "MathUtil.h"
+#include "../shared/Globals.h"
 
 /**
- * In a real application, the mailbox server would not know the factors of 221
+ * In a real application, the server would not know the factors of 221
  * Which is what makes it secure.
 */
-
 const int n = 221;
 
 /* Encrypts a given message and places it in the provided buffer */
 /* Returns -1 if the size of msg and buffer do not match */
-int encryptMessage(unsigned long *buffer, char* msg, size_t bufferSize) 
+int encryptMessage(unsigned long *buffer, char* msg, size_t bufferSize, int key) 
 {
     if (bufferSize < strlen(msg) + 1)
     { // Include space for the null terminator
@@ -30,7 +30,24 @@ int encryptMessage(unsigned long *buffer, char* msg, size_t bufferSize)
             chr = 0;
         }
 
+        chr = encrypt(chr, key);
         buffer[i] = chr;
+    }
+
+    return 0;
+}
+
+int decryptMessage(char* decryptedMsg, unsigned long *encryptedMsg, int key)
+{
+    for (size_t i = 0; i < MAX_MESSAGE_SIZE; ++i)
+    {
+        unsigned long encryptedChar = encryptedMsg[i];
+
+        if (encryptedChar != 0)
+        {
+            long long decryptedChar = decrypt((int)encryptedChar, key);
+            decryptedMsg[i] = (char)decryptedChar;
+        }
     }
 
     return 0;
