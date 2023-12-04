@@ -25,13 +25,26 @@ void listenForMessages(void *vargp)
                 break;
             }
 
-            memset(buffer, 0, sizeof(buffer));
-            
+            memset(buffer, '\0', sizeof(buffer));
             read(args->clientSock, buffer, MAX_MESSAGE_SIZE);
 
-            if (strlen(buffer) != 0)
+            char clnData[MAX_MESSAGE_SIZE];
+            memset(clnData, '\0', MAX_MESSAGE_SIZE);
+
+            int x = 0;
+            for (int i = 0; i < MAX_MESSAGE_SIZE; i++)
+            {
+                /* for some reasons, there are gaps in the message, let's fix that */
+                if ((int)buffer[i] > 0)
+                {
+                    clnData[x] = buffer[i];
+                    x += 1;
+                }
+            }
+
+            if (strlen(clnData) != 0)
             { 
-                printf("Received msg: %s\n", buffer);
+                printf("Received msg: %s\n", clnData);
             }
         }
     }

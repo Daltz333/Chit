@@ -209,7 +209,7 @@ void printHelp()
       printf("====================================\n\n");
 }
 
-void startChat(int user_id, struct sockaddr_in *addrServSock, int sock, ThreadArgs *targs)
+int startChat(int user_id, struct sockaddr_in *addrServSock, int sock, ThreadArgs *targs)
 {
    int connectUserId;
    askQuestionInt("Enter the user ID to connect to: ", &connectUserId);
@@ -217,7 +217,7 @@ void startChat(int user_id, struct sockaddr_in *addrServSock, int sock, ThreadAr
    if (connectUserId == 0)
    {
       printf("Invalid user ID.\n");
-      return;
+      return -1;
    }
 
    Addr_Serv_Message *addrMessage = malloc(sizeof(Addr_Serv_Message));
@@ -231,8 +231,8 @@ void startChat(int user_id, struct sockaddr_in *addrServSock, int sock, ThreadAr
 
    targs->clientSock = socket(AF_INET, SOCK_STREAM, 0);
    if (targs->clientSock == -1) {
-      perror("Error creating socket");
-      exit(EXIT_FAILURE);
+      printf("Error creating socket");
+      return -1; 
    }
 
    // Set up server address structure
@@ -242,7 +242,7 @@ void startChat(int user_id, struct sockaddr_in *addrServSock, int sock, ThreadAr
    if (addrMessage->remote_client_ip == 0)
    {
       printf("Failed to retrieve the remote IP from addr server.\n");
-      return;
+      return -1;
    }
    
    serverAddr.sin_family = AF_INET;
@@ -252,10 +252,11 @@ void startChat(int user_id, struct sockaddr_in *addrServSock, int sock, ThreadAr
    if (connect(targs->clientSock, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1)
    {
       printf("Failed to establish connection with server\n");
-      return;
+      return -1;
    }
 
    free(addrMessage);
+   return 0;
 }
 
 void sendMsg(ThreadArgs *targs)
@@ -302,8 +303,8 @@ void processStandardIn(int user_id, struct sockaddr_in *addrServSock, struct soc
          printAvailUsers(user_id, addrServSock, sock);
       } else if (strcmp(command, "connect") == 0)
       {
-         startChat(user_id, addrServSock, sock, targs);
-         if (sock != 0)
+         int res = startChat(user_id, addrServSock, sock, targs);
+         if (res == 0)
          {
             pthread_create(&thread_id, NULL, listenForMessages, targs);
          }
