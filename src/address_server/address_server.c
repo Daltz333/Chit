@@ -153,6 +153,22 @@ void handleClient(Addr_Serv_Message *incMessage, AddressEntry *registered_client
             free(res2);
             break;
 
+        case ADDR_EXIT:
+            /* loop and look for client */
+            for (int i = 0; i < sizeof(MAX_CLIENTS); i++)
+            {
+                AddressEntry *entry = &registered_clients[i];
+                
+                if (entry->user_id == incMessage->user_id) 
+                {
+                    /* found */
+                    memset(entry, 0, sizeof(*entry));
+                    printf("Successfully removed %i.\n", incMessage->user_id);
+                    break;
+                }
+            }
+            break;
+
         default:
             printf("Received an unhandled message type %i. Ignoring.\n", (int)incMessage->message_type);
             break;

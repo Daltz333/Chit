@@ -4,6 +4,7 @@
         "chit_client.h": "c",
         "addressentry.h": "c",
         "messages.h": "c",
-        "diewitherror.h": "c"
+        "diewitherror.h": "c",
+        "system_error": "c"
     }
 }

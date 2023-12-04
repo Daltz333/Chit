@@ -131,6 +131,25 @@ void registerPublicKey(int pubKey, int userId, struct sockaddr_in *targetSock, i
    free(message);
 }
 
+void exitFromAll(int userId, struct sockaddr_in *addrSock, struct sockaddr_in *pkSock, int sock)
+{
+   Pk_Message disconnectPk;
+   disconnectPk.message_type = PK_EXIT;
+   disconnectPk.timestamp = (long int)time(NULL);
+   disconnectPk.user_id = userId;
+
+   /* We do not care about response */
+   getPkMessage(&disconnectPk, pkSock, sock);
+
+   Addr_Serv_Message disconnectAddr;
+   disconnectAddr.message_type = PK_EXIT;
+   disconnectAddr.timestamp = (long int)time(NULL);
+   disconnectAddr.user_id = userId;
+   
+   /* We do not care about the response */
+   getAddrMessage(&disconnectAddr, addrSock, sock);
+}
+
 /**
  * Fetches a given user from the connected IP addr
 */
@@ -402,6 +421,9 @@ void processStandardIn(int user_id, struct sockaddr_in *addrServSock, struct soc
          }
       } else if (strcmp(command, "quit") == 0)
       {
+         exitFromAll(user_id, addrServSock, pkServSock, sock);
+
+         pthread_cancel(thread_id);
          pthread_join(thread_id, NULL);
          printf("Stopped listening for connections\n");
       } else 

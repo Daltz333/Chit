@@ -92,6 +92,20 @@ void handleClient(Pk_Message *incMessage, PkEntry *registered_clients, struct so
             free(resMessage);
             break;
             
+        case PK_EXIT:
+            /* loop and look for client */
+            for (int i = 0; i < sizeof(*registered_clients); i++)
+            {
+                PkEntry *entry = &registered_clients[i];
+                
+                if (entry->user_id == incMessage->req_user_id) {
+                    /* found */
+                    memset(entry, 0, sizeof(*entry));
+                    printf("Successfully removed %i\n", incMessage->req_user_id);
+                    break;
+                }
+            }
+            break;
         default:
             printf("Received an unhandled message type %i. Ignoring.\n", (int)incMessage->message_type);
             break;
