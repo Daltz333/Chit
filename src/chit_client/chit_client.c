@@ -204,6 +204,7 @@ void printHelp()
       printf("who - Gets a list of connected users\n");
       printf("connect - Sends a connection request to a given user ID\n");
       printf("sendmsg - Sends a message to the given user\n");
+      printf("accept/deny - Accepts or denies an incoming connection request\n");
       printf("quit - Exists the current connection\n");
       printf("====================================\n\n");
 }
@@ -228,8 +229,8 @@ void startChat(int user_id, struct sockaddr_in *addrServSock, int sock, ThreadAr
 
    getAddrMessage(addrMessage, addrServSock, sock);
 
-   int clientSocket = socket(AF_INET, SOCK_STREAM, 0);
-   if (clientSocket == -1) {
+   targs->clientSock = socket(AF_INET, SOCK_STREAM, 0);
+   if (targs->clientSock == -1) {
       perror("Error creating socket");
       exit(EXIT_FAILURE);
    }
@@ -238,41 +239,45 @@ void startChat(int user_id, struct sockaddr_in *addrServSock, int sock, ThreadAr
    struct sockaddr_in serverAddr;
    memset(&serverAddr, 0, sizeof(serverAddr));
 
+   if (addrMessage->remote_client_ip == 0)
+   {
+      printf("Failed to retrieve the remote IP from addr server.\n");
+      return;
+   }
+   
    serverAddr.sin_family = AF_INET;
    serverAddr.sin_port = htons(addrMessage->remote_client_port);
    serverAddr.sin_addr.s_addr = addrMessage->remote_client_ip;
 
-   if (connect(clientSocket, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1)
+   if (connect(targs->clientSock, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1)
    {
       printf("Failed to establish connection with server\n");
       return;
    }
 
-   char messageToSend[500];
-   for (;;)
-   {
-      askQuestion("Message: ", messageToSend, "err", 500);
-      if (strcmp(messageToSend, "err") == 0)
-      {
-         continue; // no message entered
-      }
-      
-      Chit_Message *msg = malloc(sizeof(Chit_Message));
-      memset(msg, 0, sizeof(Chit_Message));
-
-      msg->message_type = MESSAGE;
-      encryptMessage(msg->payload, messageToSend, sizeof(messageToSend));
-      msg->user_id = user_id;
-      msg->timestamp = (long int)time(NULL);
-
-      if (send(clientSocket, msg, sizeof(*msg), 0) == -1)
-      {
-        printf("Failed to send message to target.");
-      }
-
-      free(msg);
-   }
    free(addrMessage);
+}
+
+void sendMsg(ThreadArgs *targs)
+{
+   char msg[MAX_MESSAGE_SIZE];
+   askQuestion("Type your message: ", msg, "err", MAX_MESSAGE_SIZE);
+
+   if (strcmp(msg, "err") == 0) 
+   {
+      return;
+   }
+
+   unsigned long payload[MAX_MESSAGE_SIZE] = {0};
+   encryptMessage(payload, msg, sizeof(msg));
+
+   int sentBytes = send(targs->clientSock, payload, MAX_MESSAGE_SIZE, 0);
+   if (sentBytes == -1)
+   {
+      printf("Failed to send message to target.");
+   }
+
+   printf("Sent %i bytes.\n", sentBytes);
 }
 
 /**
@@ -284,7 +289,7 @@ void processStandardIn(int user_id, struct sockaddr_in *addrServSock, struct soc
    for (;;)
    {
       memset(command, 0, sizeof(command));
-      askQuestion("Enter in a command, or type help for a list of commands: ", command, "help", 20);
+      askQuestion("Enter in a command, or type help for a list of commands: \n", command, "help", 20);
 
       if (strcmp(command, "help") == 0) 
       {
@@ -295,6 +300,32 @@ void processStandardIn(int user_id, struct sockaddr_in *addrServSock, struct soc
       } else if (strcmp(command, "connect") == 0)
       {
          startChat(user_id, addrServSock, sock, targs);
+      } else if (strcmp(command, "accept") == 0)
+      {
+         if (targs->ConnectStatus == (int)WAITING)
+         {
+            targs->ConnectStatus = ACCEPTED;
+         } else 
+         {
+            printf("No incoming connection\n");
+         }
+      } else if (strcmp(command, "sendmsg") == 0)
+      {
+         if (targs->clientSock != 0)
+         {
+            sendMsg(targs);
+         } else {
+            printf("Not currently connected!\n");
+         }
+      } else if (strcmp(command, "deny") == 0)
+      {
+         if (targs->ConnectStatus == (int)WAITING)
+         {
+            targs->ConnectStatus = DENIED;
+         } else 
+         {
+            printf("No incoming connection\n");
+         }
       } else if (strcmp(command, "quit") == 0)
       {
          printf("unimplemented\n");
@@ -378,10 +409,14 @@ int main(int argc, char *argv[])
    /* Initialize structure to hold our cross thread args */
    ThreadArgs *targs = malloc(sizeof(ThreadArgs));
    memset(targs, 0, sizeof(ThreadArgs));
+   targs->listeningPort = listeningPort;
    
    /* Listen for incoming connection requests in another thread */
    pthread_t thread_id;
    pthread_create(&thread_id, NULL, startListening, targs);
+
+   /* Wait for server thread to start */
+   sleep(1);
 
    /* Block main thread for regular user input */
    processStandardIn(userId, &addrSockAddr, &pkSockAddr, sock, targs);

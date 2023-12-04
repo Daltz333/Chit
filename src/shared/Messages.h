@@ -9,7 +9,7 @@ typedef struct {
     enum { MESSAGE, CHIT_EXIT } message_type; /* Message type */
     unsigned long int timestamp; /* Timestamp of the sent message */
     unsigned int user_id; /* Sender ID of the message */
-    unsigned long *payload; /* Encrypted message contents */
+    unsigned long payload[MAX_MESSAGE_SIZE]; /* Encrypted message contents */
 } Chit_Message;
 
 /** Represents a message to or from the Public Key Server */

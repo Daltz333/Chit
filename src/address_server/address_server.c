@@ -25,7 +25,7 @@ void handleClient(Addr_Serv_Message *incMessage, AddressEntry *registered_client
             /* Register user & PK to memory then send ACK */
             // NOTE: didn't really feel like handling pushing/appending to an array in C
             // so this logic breaks if we have more than 100 clients registered
-            for (int i = 0; i < sizeof(*registered_clients); i++)
+            for (int i = 0; i < MAX_CLIENTS; i++)
             {
                 AddressEntry *entry = &registered_clients[i];
 
@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
     int sock; /* Socket for receiving datagrams */
     struct sockaddr_in sockAddr; /* Represents a TCp connection */
     unsigned int serverPort = -1; /* Server Port*/
-    AddressEntry registered_addr[5]; /* Array of registered public keys */
+    AddressEntry registered_addr[MAX_CLIENTS]; /* Array of registered public keys */
 
     /* Clear any existing cruft */
     memset(registered_addr, 0, sizeof(registered_addr));

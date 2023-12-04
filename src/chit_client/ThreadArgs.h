@@ -1,8 +1,8 @@
 #pragma once
 
 typedef struct {
-    int *isConnected;
-    int *socket_desc;
+    int clientSock;
+    int listeningPort;
     unsigned long *messageToSend;
-    enum { WAITING, ACCEPTED, DENIED, IDLE } ConnectStatus;
+    enum { ACCEPTED, DENIED, WAITING, IDLE } ConnectStatus;
 } ThreadArgs;

@@ -1,6 +1,6 @@
 #include <stddef.h>
 
-int encryptMessage(long unsigned int *buffer, char* msg, size_t bufferSize);
+int encryptMessage(unsigned long *buffer, char* msg, size_t bufferSize);
 int decryptMessage(char* decryptedMsg, int* encryptedMsg);
 int getTimestamp();
 long long int encrypt(int msg, int prvKey);

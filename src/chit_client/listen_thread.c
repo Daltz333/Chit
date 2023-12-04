@@ -16,53 +16,84 @@ void *startListening(void *vargp)
 {
     ThreadArgs *args = vargp;
     int socket_desc = 0;
+    int server_sock = 0;
     int client_sock = 0;
-    socklen_t client_size = 0;
-    struct sockaddr_in client_addr;
+    struct sockaddr_in server_address;
+    struct sockaddr_in client_address;
 
     Chit_Message *message = malloc(sizeof(Chit_Message));
     memset(message, 0, sizeof(Chit_Message));
     
+    // Create socket
+    if ((server_sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+        perror("Socket creation failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Configure server address
+    server_address.sin_family = AF_INET;
+    server_address.sin_addr.s_addr = INADDR_ANY;
+    server_address.sin_port = htons(args->listeningPort);
+
+    // Bind the socket
+    if (bind(server_sock, (struct sockaddr*)&server_address, sizeof(server_address)) == -1) {
+        printf("Bind failed\n");
+    }
+
     for(;;)
     {
-        // Accept an incoming connection:
-        client_size = sizeof(client_addr);
-        client_sock = accept(socket_desc, (struct sockaddr*)&client_addr, &client_size);
+        // Listen for incoming connections
+        if (listen(server_sock, 3) == -1) {
+            printf("Listen failed\n");
+            exit(EXIT_FAILURE);
+        }
 
-        if (client_sock < 0)
+        printf("TCP listening on port %d\n", args->listeningPort);
+
+        // Accept a connection
+        socklen_t client_address_len = sizeof(client_address);
+        if ((client_sock = accept(server_sock, (struct sockaddr*)&client_address, &client_address_len)) == -1) {
+            printf("Accept failed\n");
+            exit(EXIT_FAILURE);
+        }
+
+        args->ConnectStatus = WAITING;
+        printf("\nConnection request %s:%d. Type accept/deny to confirm.\n", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
+
+        args->clientSock = client_sock;
+
+        if (server_sock < 0)
         {
             sleep(1); // no incoming connections
             continue;
         }
 
-        printf("Connection request at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
-
-        char response[20];
-        askQuestion("Type accept to confirm, or deny to reject.", response, "deny", 20);
-
-        if (strcmp(response, "accept") == 0)
+        for(;;)
         {
-            *args->isConnected = 1;
+            if (args->ConnectStatus == (int)ACCEPTED || args->ConnectStatus == (int)DENIED)
+            {
+                break; // confirmation 
+            }
 
-            // Connection request allowed, accept, wait for messages
+            sleep(1);
+        }
+
+        char buffer[MAX_MESSAGE_SIZE];
+
+        // Connection request allowed, accept, wait for messages
+        if (args->ConnectStatus == (int)ACCEPTED)
+        {
+            args->ConnectStatus = IDLE; // reset state
             for(;;)
             {
-                if (*args->isConnected != 1)
-                {
-                    printf("Exiting communication\n");
-                    break;
-                }
-
-                if (recv(client_sock, message, sizeof(message), 0) < 0){
-                    printf("Couldn't receive\n");
-                    continue;
-                 }
-
-                printf("Message from %i: %lu", message->user_id, *message->payload);
+                memset(buffer, 0, sizeof(buffer));
+                
+                read(client_sock, buffer, MAX_MESSAGE_SIZE);
+                printf("Received msg: %s\n", buffer);
             }
         }
 
-        close(client_sock);
+        close(server_sock);
         close(socket_desc);
     }
 }
