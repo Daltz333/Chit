@@ -7,12 +7,42 @@
 #include "../shared/StringUtil.h"
 #include "../shared/Messages.h"
 
+/* Begins listening for messages until args -> ConnectStatus = EXIT*/
+void listenForMessages(void *vargp)
+{
+    ThreadArgs *args = vargp;
+    char buffer[MAX_MESSAGE_SIZE];
+
+    // Connection request allowed, accept, wait for messages
+    if (args->ConnectStatus == (int)ACCEPTED)
+    {
+        args->ConnectStatus = IDLE; // reset state
+        for(;;)
+        {
+            if (args->ConnectStatus == (int)EXITED)
+            {
+                args->ConnectStatus = IDLE;
+                break;
+            }
+
+            memset(buffer, 0, sizeof(buffer));
+            
+            read(args->clientSock, buffer, MAX_MESSAGE_SIZE);
+
+            if (strlen(buffer) != 0)
+            { 
+                printf("Received msg: %s\n", buffer);
+            }
+        }
+    }
+}
+
 /**
  * Start listening for any incoming connections
  * Params: Pointers to state that we poll for requests from the main thread
  * requestConnect -1 for when we are exiting cleanly
 */
-void *startListening(void *vargp)
+void *startServThread(void *vargp)
 {
     ThreadArgs *args = vargp;
     int socket_desc = 0;
@@ -57,6 +87,15 @@ void *startListening(void *vargp)
             exit(EXIT_FAILURE);
         }
 
+        if (args->clientSock != 0)
+        {
+            printf("An incoming connection request has been rejected. Already in an existing chat session.\n");
+            continue;
+
+            close(client_sock);
+            close(socket_desc);
+        }
+
         args->ConnectStatus = WAITING;
         printf("\nConnection request %s:%d. Type accept/deny to confirm.\n", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
 
@@ -78,19 +117,9 @@ void *startListening(void *vargp)
             sleep(1);
         }
 
-        char buffer[MAX_MESSAGE_SIZE];
-
-        // Connection request allowed, accept, wait for messages
         if (args->ConnectStatus == (int)ACCEPTED)
         {
-            args->ConnectStatus = IDLE; // reset state
-            for(;;)
-            {
-                memset(buffer, 0, sizeof(buffer));
-                
-                read(client_sock, buffer, MAX_MESSAGE_SIZE);
-                printf("Received msg: %s\n", buffer);
-            }
+            listenForMessages((void *)args);
         }
 
         close(server_sock);

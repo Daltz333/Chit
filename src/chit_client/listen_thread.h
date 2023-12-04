@@ -1,1 +1,2 @@
-void *startListening(void *vargp);
+void *startServThread(void *vargp);
+void *listenForMessages(void *vargp);

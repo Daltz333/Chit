@@ -286,6 +286,9 @@ void sendMsg(ThreadArgs *targs)
 void processStandardIn(int user_id, struct sockaddr_in *addrServSock, struct sockaddr_in *pkServSock, int sock, ThreadArgs *targs)
 {
    char command[20];
+
+   pthread_t thread_id;
+
    for (;;)
    {
       memset(command, 0, sizeof(command));
@@ -300,6 +303,10 @@ void processStandardIn(int user_id, struct sockaddr_in *addrServSock, struct soc
       } else if (strcmp(command, "connect") == 0)
       {
          startChat(user_id, addrServSock, sock, targs);
+         if (sock != 0)
+         {
+            pthread_create(&thread_id, NULL, listenForMessages, targs);
+         }
       } else if (strcmp(command, "accept") == 0)
       {
          if (targs->ConnectStatus == (int)WAITING)
@@ -328,7 +335,8 @@ void processStandardIn(int user_id, struct sockaddr_in *addrServSock, struct soc
          }
       } else if (strcmp(command, "quit") == 0)
       {
-         printf("unimplemented\n");
+         pthread_join(thread_id, NULL);
+         printf("Stopped listening for connections\n");
       } else 
       {
          // unknown, print help
@@ -413,7 +421,7 @@ int main(int argc, char *argv[])
    
    /* Listen for incoming connection requests in another thread */
    pthread_t thread_id;
-   pthread_create(&thread_id, NULL, startListening, targs);
+   pthread_create(&thread_id, NULL, startServThread, targs);
 
    /* Wait for server thread to start */
    sleep(1);

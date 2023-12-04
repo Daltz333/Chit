@@ -4,5 +4,5 @@ typedef struct {
     int clientSock;
     int listeningPort;
     unsigned long *messageToSend;
-    enum { ACCEPTED, DENIED, WAITING, IDLE } ConnectStatus;
+    enum { ACCEPTED, DENIED, WAITING, IDLE, EXITED } ConnectStatus;
 } ThreadArgs;
