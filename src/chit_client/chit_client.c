@@ -245,6 +245,7 @@ void startChat(int user_id, struct sockaddr_in *addrServSock, int sock, ThreadAr
    if (connect(clientSocket, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1)
    {
       printf("Failed to establish connection with server\n");
+      return;
    }
 
    char messageToSend[500];

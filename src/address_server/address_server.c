@@ -85,18 +85,19 @@ void handleClient(Addr_Serv_Message *incMessage, AddressEntry *registered_client
 
             free(res);
             break;
-            
+
         case FETCH_ADDR:
             int found = 0;
             in_addr_t found_address;
             int found_port = 0;
 
             /* loop and look for client */
-            for (int i = 0; i < sizeof(*registered_clients); i++)
+            for (int i = 0; i < sizeof(MAX_CLIENTS); i++)
             {
                 AddressEntry *entry = &registered_clients[i];
                 
-                if (entry->user_id == incMessage->user_id) {
+                if (entry->user_id == incMessage->req_user_id) 
+                {
                     /* found */
                     found_address = entry->clientIp;
                     found_port = entry->clientListenPort;

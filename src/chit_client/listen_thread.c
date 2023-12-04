@@ -28,13 +28,11 @@ void *startListening(void *vargp)
         // Accept an incoming connection:
         client_size = sizeof(client_addr);
         client_sock = accept(socket_desc, (struct sockaddr*)&client_addr, &client_size);
-        
-        // Clean buffers:
-        memset(memset, 0, sizeof(Chit_Message));
 
-        if (client_sock < 0){
-            printf("Can't accept\n");
-            continue;;
+        if (client_sock < 0)
+        {
+            sleep(1); // no incoming connections
+            continue;
         }
 
         printf("Connection request at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
