@@ -22,7 +22,7 @@ Run the following in separate bash instances:
 
 ### Valid client commands
 
-TODO
+Type `help` once configured to view a list of commands.
 
 ## Build Instructions
 
